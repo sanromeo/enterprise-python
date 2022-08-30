@@ -84,6 +84,7 @@ class RelCrudTest:
                 trade_id=f"T{i + 1}",
                 trade_type="Swap",
                 legs=[fixed_legs[i], floating_legs[i]],
+                notional=(i + 1) * 100,
             )
             for i in range(0, 2)
         ]
@@ -94,6 +95,7 @@ class RelCrudTest:
                 trade_id=f"T{i + 1}",
                 trade_type="Bond",
                 bond_ccy=ccy_list[i % ccy_count],
+                notional=(i + 1) * 100,
             )
             for i in range(2, 3)
         ]
@@ -116,12 +118,10 @@ class RelCrudTest:
         trades = self.create_records()
 
         with engine.connect() as connection:
-
             # Create schema
             RelationalBase.metadata.create_all(engine)
 
             with Session(engine) as session:
-
                 # Write the trade and leg records and commit
                 session.add_all(trades)
                 session.commit()
@@ -187,7 +187,18 @@ class RelCrudTest:
                         for trade in gbp_fixed_swaps
                     ]
                 )
-
+                # Add query for trades with notional >= 200
+                trades_notional_gte_200 = list(
+                    session.query(RelationalTrade)
+                    .where(RelationalTrade.notional >= 200)
+                    .order_by(RelationalTrade.trade_id)
+                )
+                result += "Trades with notional >= 200:\n" + "".join(
+                    [
+                        f"    trade_id={trade.trade_id} trade_type={trade.trade_type} notional={trade.notional}\n"
+                        for trade in trades_notional_gte_200
+                    ]
+                )
         # Verify result
         at.verify(result)
 
